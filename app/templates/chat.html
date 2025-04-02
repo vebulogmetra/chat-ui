@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}{{ chat.title }} - LLM Chat UI{% endblock %}
+
+{% block sidebar_content %}
+<div class="chats-list">
+    {% for chat_item in chats %}
+    <div class="chat-item {% if chat_item.id == chat.id %}active{% endif %}" data-chat-id="{{ chat_item.id }}">
+        <div class="chat-title">{{ chat_item.title }}</div>
+        <button class="delete-chat-btn" data-chat-id="{{ chat_item.id }}">&times;</button>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="chat-container" id="chatContainer" data-chat-id="{{ chat.id }}">
+    <div class="chat-header">
+        <h2>{{ chat.title }}</h2>
+    </div>
+    
+    <div class="chat-messages" id="chatMessages">
+        {% for message in messages %}
+        <div class="message {% if message.role == 'user' %}user-message{% else %}assistant-message{% endif %}">
+            <div class="message-avatar">
+                {% if message.role == 'user' %}
+                <div class="avatar user-avatar">Вы</div>
+                {% else %}
+                <div class="avatar assistant-avatar">AI</div>
+                {% endif %}
+            </div>
+            <div class="message-content">
+                {{ message.content | safe }}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div class="chat-input-container">
+        <div class="model-selector">
+            <select id="modelSelector">
+                {% for model in models %}
+                <option value="{{ model.name }}">{{ model.display_name }}</option>
+                {% endfor %}
+            </select>
+            <button id="modelSettingsBtn" class="model-settings-btn">⚙️</button>
+        </div>
+        
+        <div class="message-input-wrapper">
+            <textarea id="messageInput" placeholder="Введите ваше сообщение..."></textarea>
+            <button id="sendMessageBtn" class="send-message-btn">
+                <span>Отправить</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно настроек модели -->
+<div id="modelSettingsModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Настройки модели <span id="currentModelName"></span></h3>
+            <button class="close-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="modelSettingsForm">
+                <div class="form-group">
+                    <label for="temperature">Температура:</label>
+                    <input type="range" id="temperature" name="temperature" min="0" max="1" step="0.1" value="0.7">
+                    <span id="temperatureValue">0.7</span>
+                </div>
+                
+                <div class="form-group">
+                    <label for="maxTokens">Максимальная длина ответа:</label>
+                    <input type="number" id="maxTokens" name="maxTokens" min="64" max="4096" value="1024">
+                </div>
+                
+                <div class="form-group">
+                    <label for="systemPrompt">Системный промпт:</label>
+                    <textarea id="systemPrompt" name="systemPrompt" rows="4"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>Шаблоны промптов:</label>
+                    <select id="promptTemplates">
+                        <option value="">Выберите шаблон...</option>
+                    </select>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="save-btn">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const CHAT_ID = "{{ chat.id }}";
+</script>
+<script src="{{ url_for('static', path='/js/chat.js') }}"></script>
+{% endblock %} 

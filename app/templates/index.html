@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}LLM Chat UI - Главная{% endblock %}
+
+{% block sidebar_content %}
+<div class="chats-list">
+    {% for chat in chats %}
+    <div class="chat-item" data-chat-id="{{ chat.id }}">
+        <div class="chat-title">{{ chat.title }}</div>
+        <button class="delete-chat-btn" data-chat-id="{{ chat.id }}">&times;</button>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="chat-container" id="chatContainer">
+    <div class="chat-messages" id="chatMessages">
+        <div class="welcome-screen">
+            <h2>Добро пожаловать в LLM Chat UI</h2>
+            <p>Начните новый чат или выберите существующий из истории</p>
+        </div>
+    </div>
+    
+    <div class="chat-input-container">
+        <div class="model-selector">
+            <select id="modelSelector">
+                {% for model in models %}
+                <option value="{{ model.name }}">{{ model.display_name }}</option>
+                {% endfor %}
+            </select>
+            <button id="modelSettingsBtn" class="model-settings-btn">⚙️</button>
+        </div>
+        
+        <div class="message-input-wrapper">
+            <textarea id="messageInput" placeholder="Введите ваше сообщение..."></textarea>
+            <button id="sendMessageBtn" class="send-message-btn">
+                <span>Отправить</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно настроек модели -->
+<div id="modelSettingsModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Настройки модели <span id="currentModelName"></span></h3>
+            <button class="close-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="modelSettingsForm">
+                <div class="form-group">
+                    <label for="temperature">Температура:</label>
+                    <input type="range" id="temperature" name="temperature" min="0" max="1" step="0.1" value="0.7">
+                    <span id="temperatureValue">0.7</span>
+                </div>
+                
+                <div class="form-group">
+                    <label for="maxTokens">Максимальная длина ответа:</label>
+                    <input type="number" id="maxTokens" name="maxTokens" min="64" max="4096" value="1024">
+                </div>
+                
+                <div class="form-group">
+                    <label for="systemPrompt">Системный промпт:</label>
+                    <textarea id="systemPrompt" name="systemPrompt" rows="4"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>Шаблоны промптов:</label>
+                    <select id="promptTemplates">
+                        <option value="">Выберите шаблон...</option>
+                    </select>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="save-btn">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', path='/js/chat.js') }}"></script>
+{% endblock %} 

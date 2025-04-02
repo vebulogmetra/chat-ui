@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Шаблоны промптов - LLM Chat UI{% endblock %}
+
+{% block content %}
+<div class="prompts-container">
+    <div class="prompts-header">
+        <h2>Шаблоны промптов</h2>
+        <button id="addPromptBtn" class="add-btn">Добавить шаблон</button>
+    </div>
+    
+    <div class="prompts-list">
+        {% for prompt in prompts %}
+        <div class="prompt-item" data-prompt-id="{{ prompt.id }}">
+            <div class="prompt-info">
+                <h3>{{ prompt.name }}</h3>
+                {% if prompt.description %}
+                <p>{{ prompt.description }}</p>
+                {% endif %}
+            </div>
+            <div class="prompt-content">
+                <div class="prompt-section">
+                    <h4>Системный промпт:</h4>
+                    <pre>{{ prompt.system_prompt }}</pre>
+                </div>
+                {% if prompt.user_prompt %}
+                <div class="prompt-section">
+                    <h4>Шаблон сообщения пользователя:</h4>
+                    <pre>{{ prompt.user_prompt }}</pre>
+                </div>
+                {% endif %}
+            </div>
+            <div class="prompt-actions">
+                <button class="edit-prompt-btn" data-prompt-id="{{ prompt.id }}">Редактировать</button>
+                <button class="delete-prompt-btn" data-prompt-id="{{ prompt.id }}">Удалить</button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Модальное окно добавления/редактирования шаблона промпта -->
+<div id="promptTemplateModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="promptModalTitle">Новый шаблон промпта</h3>
+            <button class="close-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="promptTemplateForm">
+                <input type="hidden" id="promptId" name="id">
+                
+                <div class="form-group">
+                    <label for="promptName">Название:</label>
+                    <input type="text" id="promptName" name="name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="promptDescription">Описание:</label>
+                    <input type="text" id="promptDescription" name="description">
+                </div>
+                
+                <div class="form-group">
+                    <label for="promptSystemPrompt">Системный промпт:</label>
+                    <textarea id="promptSystemPrompt" name="systemPrompt" rows="6" required></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="promptUserPrompt">Шаблон сообщения пользователя:</label>
+                    <textarea id="promptUserPrompt" name="userPrompt" rows="4"></textarea>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="save-btn">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', path='/js/prompts.js') }}"></script>
+{% endblock %} 

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}LLM Chat UI{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/styles.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1>LLM Chat UI</h1>
+                <button class="new-chat-btn" id="newChatBtn">
+                    <span>Новый чат</span>
+                </button>
+            </div>
+            
+            <div class="chats-container" id="chatsList">
+                {% block sidebar_content %}
+                <!-- История чатов будет загружена здесь -->
+                {% endblock %}
+            </div>
+            
+            <div class="sidebar-footer">
+                <a href="{{ url_for('models_page') }}">Настройки моделей</a>
+            </div>
+        </aside>
+        
+        <main class="content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+    
+    <script src="{{ url_for('static', path='/js/app.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html> 

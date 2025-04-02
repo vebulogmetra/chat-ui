@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Настройки моделей - LLM Chat UI{% endblock %}
+
+{% block content %}
+<div class="models-container">
+    <div class="models-header">
+        <h2>Настройки моделей</h2>
+        <button id="refreshModelsBtn" class="refresh-btn">Обновить список моделей</button>
+    </div>
+    
+    <div class="models-list">
+        {% for model in models %}
+        <div class="model-item" data-model-name="{{ model.name }}">
+            <div class="model-info">
+                <h3>{{ model.display_name }}</h3>
+                <p>{{ model.description }}</p>
+            </div>
+            <div class="model-actions">
+                <button class="edit-model-btn" data-model-name="{{ model.name }}">Настроить</button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div class="prompts-section">
+        <div class="prompts-header">
+            <h2>Шаблоны промптов</h2>
+            <button id="addPromptBtn" class="add-btn">Добавить шаблон</button>
+        </div>
+        
+        <div class="prompts-list" id="promptsList">
+            <!-- Шаблоны промптов будут загружены здесь -->
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно настроек модели -->
+<div id="modelSettingsModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Настройки модели <span id="currentModelName"></span></h3>
+            <button class="close-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="modelSettingsForm">
+                <div class="form-group">
+                    <label for="temperature">Температура:</label>
+                    <input type="range" id="temperature" name="temperature" min="0" max="1" step="0.1" value="0.7">
+                    <span id="temperatureValue">0.7</span>
+                </div>
+                
+                <div class="form-group">
+                    <label for="maxTokens">Максимальная длина ответа:</label>
+                    <input type="number" id="maxTokens" name="maxTokens" min="64" max="4096" value="1024">
+                </div>
+                
+                <div class="form-group">
+                    <label for="systemPrompt">Системный промпт по умолчанию:</label>
+                    <textarea id="systemPrompt" name="systemPrompt" rows="4"></textarea>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="save-btn">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно добавления шаблона промпта -->
+<div id="promptTemplateModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Новый шаблон промпта</h3>
+            <button class="close-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="promptTemplateForm">
+                <div class="form-group">
+                    <label for="promptName">Название:</label>
+                    <input type="text" id="promptName" name="name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="promptDescription">Описание:</label>
+                    <input type="text" id="promptDescription" name="description">
+                </div>
+                
+                <div class="form-group">
+                    <label for="promptSystemPrompt">Системный промпт:</label>
+                    <textarea id="promptSystemPrompt" name="systemPrompt" rows="4" required></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="promptUserPrompt">Шаблон сообщения пользователя:</label>
+                    <textarea id="promptUserPrompt" name="userPrompt" rows="2"></textarea>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="save-btn">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', path='/js/models.js') }}"></script>
+{% endblock %}
