@@ -1,1 +1,62 @@
-# Python\n__pycache__/\n**/__pycache__/\n*.py[cod]\n*$py.class\n*.so\n.Python\nenv/\nbuild/\ndevelop-eggs/\ndist/\ndownloads/\neggs/\n.eggs/\nlib/\nlib64/\nparts/\nsdist/\nvar/\nwheels/\n*.egg-info/\n.installed.cfg\n*.egg\n\n# Virtual Environment\nvenv/\nENV/\n.venv/\n.venv\n\n# Databases\n*.db\n*.sqlite3\n*.sqlite\n\n# Logs\n*.log\n\n# Environment\n.env\n\n# IDE\n.idea/\n.vscode/\n*.swp\n*.swo\n\n# OS\n.DS_Store\n.DS_Store?\n._*\n.Spotlight-V100\n.Trashes\nehthumbs.db\nThumbs.db\n\n# Pytest\n.coverage\nhtmlcov/\n.pytest_cache/\n\n# Docker\n.docker/
+# Python
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+.venv/
+
+# Databases
+*.db
+*.sqlite3
+*.sqlite
+
+# Logs
+*.log
+
+# Environment
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Pytest
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Docker
+.docker/
