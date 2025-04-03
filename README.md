@@ -1,16 +1,13 @@
 # LLM Chat UI
 
-Веб-интерфейс для взаимодействия с языковыми моделями через Ollama.
+Веб-интерфейс для взаимодействия с языковыми моделями.
 
 ## Особенности
 
 - Множественные чаты с историей
-- Поддержка всех моделей, доступных в Ollama
 - Настройка параметров для каждой модели (температура, длина ответа)
 - Шаблоны системных промптов для специализированных ролей
-- Интерфейс в стиле ChatGPT
 - Потоковый вывод ответов модели
-- Поддержка Docker и Docker Compose
 - Работа с SQLite (разработка) или PostgreSQL (продакшен)
 
 ## Встроенные шаблоны ролей
@@ -38,14 +35,14 @@
 
 1. Клонировать репозиторий:
 ```
-git clone https://github.com/yourusername/llm-chat-ui.git
-cd llm-chat-ui
+git clone https://github.com/vebulogmetra/chat-ui
+cd chat-ui
 ```
 
 2. Создать виртуальное окружение:
 ```
 python -m venv venv
-source venv/bin/activate  # На Windows: venv\Scripts\activate
+source venv/bin/activate
 ```
 
 3. Установить зависимости:
@@ -69,8 +66,8 @@ python run.py
 
 1. Клонировать репозиторий:
 ```
-git clone https://github.com/yourusername/llm-chat-ui.git
-cd llm-chat-ui
+git clone https://github.com/vebulogmetra/chat-ui
+cd chat-ui
 ```
 
 2. Создать .env файл:
@@ -82,7 +79,7 @@ cp .env.example .env
 ```
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=yourpassword
-POSTGRES_DB=llm_chat
+POSTGRES_DB=chat-ui
 OLLAMA_API_URL=http://ollama:11434/api
 ```
 
@@ -125,7 +122,7 @@ pytest tests/test_models.py
 │   ├── database/           # Модули для работы с базой данных
 │   ├── models/             # Модели данных
 │   ├── routes/             # Маршруты API
-│   ├── services/           # Сервисы (работа с Ollama API)
+│   ├── services/           # Сервисы
 │   ├── static/             # Статические файлы (CSS, JS)
 │   └── templates/          # HTML шаблоны
 ├── tests/                  # Тесты
@@ -153,4 +150,4 @@ pytest tests/test_models.py
 
 ## Лицензия
 
-MIT 
+MIT
