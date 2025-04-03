@@ -1,10 +1,4 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Кнопка создания нового чата
-    const newChatBtn = document.getElementById('newChatBtn');
-    if (newChatBtn) {
-        newChatBtn.addEventListener('click', createNewChat);
-    }
-    
     // Обработчики для существующих чатов
     setupChatItemHandlers();
     
@@ -23,7 +17,7 @@ function setupChatItemHandlers() {
         item.addEventListener('click', function(e) {
             if (!e.target.classList.contains('delete-chat-btn')) {
                 const chatId = this.dataset.chatId;
-                window.location.href = `/chat/${chatId}`;
+                window.location.href = `/chat/chats/${chatId}`;
             }
         });
     });
@@ -45,25 +39,59 @@ function setupChatItemHandlers() {
  * Создание нового чата
  */
 async function createNewChat() {
+    console.log('===== ВЫЗВАНА ФУНКЦИЯ createNewChat() =====');
+    const modelSelect = document.getElementById('modelSelect');
+    console.log('Элемент modelSelect:', modelSelect);
+    
+    if (!modelSelect || !modelSelect.value) {
+        console.error('Не выбрана модель для чата');
+        showError('Выберите модель для создания чата');
+        return;
+    }
+    
+    const modelId = modelSelect.value;
+    const chatTitle = "Новый чат";
+    
+    console.log('Данные для создания чата:', { modelId, chatTitle });
+    
     try {
-        const response = await fetch('/chat/create', {
+        console.log(`Отправка запроса на создание чата с моделью ID=${modelId}`);
+        
+        // Создаем объект для отправки
+        const requestData = {
+            title: chatTitle,
+            model_id: modelId
+        };
+        
+        console.log('Сформированный запрос:', JSON.stringify(requestData));
+        console.log('URL запроса:', '/chat/chats/new');
+        
+        const response = await fetch('/chat/chats/new', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Type': 'application/json'
             },
-            body: new URLSearchParams({
-                'title': 'Новый чат'
-            })
+            body: JSON.stringify(requestData)
         });
         
-        if (response.ok) {
-            const data = await response.json();
-            window.location.href = `/chat/${data.id}`;
-        } else {
-            console.error('Ошибка создания чата');
+        console.log('Получен ответ от сервера:', response.status, response.statusText);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Ошибка создания чата:', errorText);
+            showError('Ошибка создания чата');
+            return;
         }
+        
+        const chat = await response.json();
+        console.log('Успешно создан чат:', chat);
+        
+        // Переходим к новому чату
+        console.log('Переход к чату:', `/chat/chats/${chat.id}`);
+        window.location.href = `/chat/chats/${chat.id}`;
     } catch (error) {
-        console.error('Ошибка:', error);
+        console.error('Исключение при создании чата:', error);
+        showError('Ошибка при создании чата: ' + error.message);
     }
 }
 
@@ -72,13 +100,13 @@ async function createNewChat() {
  */
 async function deleteChat(chatId) {
     try {
-        const response = await fetch(`/chat/${chatId}`, {
+        const response = await fetch(`/chat/chats/${chatId}`, {
             method: 'DELETE'
         });
         
         if (response.ok) {
             // Если мы находимся на странице этого чата, перенаправляем на главную
-            if (window.location.pathname.includes(`/chat/${chatId}`)) {
+            if (window.location.pathname.includes(`/chat/chats/${chatId}`)) {
                 window.location.href = '/';
             } else {
                 // Иначе просто удаляем элемент из DOM
@@ -112,4 +140,33 @@ function setupMessageInputHandlers() {
             }
         });
     }
+}
+
+/**
+ * Показать сообщение об ошибке
+ */
+function showError(message) {
+    // Удаляем старые сообщения об ошибках, если они есть
+    document.querySelectorAll('.error-message').forEach(el => el.remove());
+    
+    // Создаем элемент сообщения
+    const errorElement = document.createElement('div');
+    errorElement.className = 'error-message';
+    errorElement.textContent = message;
+    
+    // Добавляем элемент в DOM
+    document.body.appendChild(errorElement);
+    
+    // Анимация появления
+    setTimeout(() => {
+        errorElement.classList.add('fade-in');
+    }, 10);
+    
+    // Автоматическое скрытие через 5 секунд
+    setTimeout(() => {
+        errorElement.classList.add('fade-out');
+        setTimeout(() => {
+            errorElement.remove();
+        }, 500);
+    }, 5000);
 } 
