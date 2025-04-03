@@ -17,6 +17,13 @@
 <div class="chat-container" id="chatContainer" data-chat-id="{{ chat.id }}">
     <div class="chat-header">
         <h2>{{ chat.title }}</h2>
+        
+        <div class="prompt-selector-mini">
+            <select id="promptTemplates" class="prompt-select-mini">
+                <option value="">Выберите роль для модели...</option>
+            </select>
+            <button id="applyPromptBtn" class="apply-prompt-btn-mini">Применить</button>
+        </div>
     </div>
     
     <div class="chat-messages" id="chatMessages">
@@ -36,22 +43,22 @@
         {% endfor %}
     </div>
     
-    <div class="chat-input-container">
-        <div class="model-selector">
-            <select id="modelSelector">
-                {% for model in models %}
-                <option value="{{ model.name }}">{{ model.display_name }}</option>
-                {% endfor %}
-            </select>
-            <button id="modelSettingsBtn" class="model-settings-btn">⚙️</button>
-        </div>
-        
-        <div class="message-input-wrapper">
-            <textarea id="messageInput" placeholder="Введите ваше сообщение..."></textarea>
-            <button id="sendMessageBtn" class="send-message-btn">
-                <span>Отправить</span>
-            </button>
-        </div>
+    <div class="chat-form">
+        <form id="messageForm">
+            <textarea id="messageInput" placeholder="Введите ваш запрос..."></textarea>
+            <div class="form-controls">
+                <div class="model-selector-container">
+                    <select id="modelSelector">
+                        <option value="">Выберите модель</option>
+                        {% for model in models %}
+                        <option value="{{ model.name }}">{{ model.display_name }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="button" id="modelSettingsBtn" class="settings-btn"><i class="fas fa-cog"></i></button>
+                </div>
+                <button type="submit" id="sendButton">Отправить</button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -82,9 +89,14 @@
                 
                 <div class="form-group">
                     <label>Шаблоны промптов:</label>
-                    <select id="promptTemplates">
+                    <select id="modalPromptTemplates">
                         <option value="">Выберите шаблон...</option>
                     </select>
+                </div>
+                
+                <div class="user-prompt-preview" style="display: none;">
+                    <h4>Пример запроса:</h4>
+                    <p id="userPromptPreview"></p>
                 </div>
                 
                 <div class="form-actions">

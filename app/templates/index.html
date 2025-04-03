@@ -5,7 +5,7 @@
 {% block sidebar_content %}
 <div class="chats-list">
     {% for chat in chats %}
-    <div class="chat-item" data-chat-id="{{ chat.id }}">
+    <div class="chat-item{% if current_chat and current_chat.id == chat.id %} active{% endif %}" data-chat-id="{{ chat.id }}">
         <div class="chat-title">{{ chat.title }}</div>
         <button class="delete-chat-btn" data-chat-id="{{ chat.id }}">&times;</button>
     </div>
@@ -14,74 +14,103 @@
 {% endblock %}
 
 {% block content %}
-<div class="chat-container" id="chatContainer">
-    <div class="chat-messages" id="chatMessages">
-        <div class="welcome-screen">
-            <h2>Добро пожаловать в LLM Chat UI</h2>
-            <p>Начните новый чат или выберите существующий из истории</p>
-        </div>
-    </div>
+<div class="welcome-container">
+    <h1>Добро пожаловать в LLM Chat UI</h1>
+    <p class="welcome-description">
+        Начните новый чат или выберите существующий из истории
+    </p>
     
-    <div class="chat-input-container">
-        <div class="model-selector">
-            <select id="modelSelector">
-                {% for model in models %}
-                <option value="{{ model.name }}">{{ model.display_name }}</option>
-                {% endfor %}
+    <div class="template-selector">
+        <h2>Выберите шаблон роли для модели:</h2>
+        <p class="prompt-description">
+            Выберите роль для модели (Python разработчик, IT наставник и т.д.) и нажмите
+            "Применить". По умолчанию используется личный ассистент Артём.
+        </p>
+        
+        <div class="template-controls">
+            <select id="promptTemplates" class="template-dropdown">
+                <option value="">Загрузка шаблонов...</option>
             </select>
-            <button id="modelSettingsBtn" class="model-settings-btn">⚙️</button>
+            <button id="applyTemplateBtn" class="apply-template-btn">Применить</button>
         </div>
         
-        <div class="message-input-wrapper">
-            <textarea id="messageInput" placeholder="Введите ваше сообщение..."></textarea>
-            <button id="sendMessageBtn" class="send-message-btn">
-                <span>Отправить</span>
-            </button>
+        <div id="promptPreview" class="prompt-preview"></div>
+    </div>
+    
+    <div class="model-selector">
+        <h2>Выберите модель:</h2>
+        <select id="modelSelect" class="model-dropdown">
+            <option value="">Загрузка моделей...</option>
+        </select>
+    </div>
+    
+    <form id="newChatForm" action="/chat/chats/new" method="post">
+        <input type="hidden" name="title" value="Новый чат">
+        <input type="hidden" id="formModelId" name="model_id" value="">
+        <button type="submit" id="newChatBtn" class="new-chat-btn">Начать новый чат</button>
+    </form>
+    
+    <div class="history-list">
+        <h2>История чатов</h2>
+        <div id="chatsList" class="chats-list">
+            <!-- Список чатов будет загружен через JavaScript -->
+            <div class="loading-message">Загрузка чатов...</div>
         </div>
     </div>
 </div>
 
-<!-- Модальное окно настроек модели -->
-<div id="modelSettingsModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>Настройки модели <span id="currentModelName"></span></h3>
-            <button class="close-modal">&times;</button>
-        </div>
-        <div class="modal-body">
-            <form id="modelSettingsForm">
-                <div class="form-group">
-                    <label for="temperature">Температура:</label>
-                    <input type="range" id="temperature" name="temperature" min="0" max="1" step="0.1" value="0.7">
-                    <span id="temperatureValue">0.7</span>
-                </div>
+<script>
+    document.addEventListener('DOMContentLoaded', async function() {
+        try {
+            console.log('Начало инициализации страницы');
+            
+            // Загружаем список моделей
+            console.log('Вызов функции loadModels()');
+            const models = await loadModels();
+            console.log('Результат загрузки моделей:', models);
+            
+            // Загружаем шаблоны промптов
+            console.log('Вызов функции loadPromptTemplates()');
+            const templates = await loadPromptTemplates();
+            console.log('Результат загрузки шаблонов:', templates);
+            
+            // Загружаем список чатов
+            console.log('Вызов функции loadChats()');
+            const chats = await loadChats();
+            console.log('Результат загрузки чатов:', chats);
+            
+            // Настраиваем форму создания чата
+            const modelSelect = document.getElementById('modelSelect');
+            const formModelId = document.getElementById('formModelId');
+            const newChatForm = document.getElementById('newChatForm');
+            
+            if (modelSelect && formModelId && newChatForm) {
+                // Обновляем значение model_id при изменении выбора модели
+                modelSelect.addEventListener('change', function() {
+                    formModelId.value = this.value;
+                    console.log('Обновлено значение модели в форме:', formModelId.value);
+                });
                 
-                <div class="form-group">
-                    <label for="maxTokens">Максимальная длина ответа:</label>
-                    <input type="number" id="maxTokens" name="maxTokens" min="64" max="4096" value="1024">
-                </div>
-                
-                <div class="form-group">
-                    <label for="systemPrompt">Системный промпт:</label>
-                    <textarea id="systemPrompt" name="systemPrompt" rows="4"></textarea>
-                </div>
-                
-                <div class="form-group">
-                    <label>Шаблоны промптов:</label>
-                    <select id="promptTemplates">
-                        <option value="">Выберите шаблон...</option>
-                    </select>
-                </div>
-                
-                <div class="form-actions">
-                    <button type="submit" class="save-btn">Сохранить</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
+                // Валидация формы перед отправкой
+                newChatForm.addEventListener('submit', function(e) {
+                    if (!formModelId.value) {
+                        e.preventDefault();
+                        alert('Пожалуйста, выберите модель для чата');
+                        console.error('Попытка отправки формы без выбранной модели');
+                    } else {
+                        console.log('Отправка формы с model_id =', formModelId.value);
+                    }
+                });
+            }
+            
+            console.log('Инициализация страницы завершена');
+        } catch (error) {
+            console.error('Ошибка инициализации:', error);
+        }
+    });
+</script>
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', path='/js/chat.js') }}"></script>
+<!-- Скрипт chat.js уже загружен в базовом шаблоне -->
 {% endblock %} 
