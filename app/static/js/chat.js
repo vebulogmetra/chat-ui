@@ -1,7 +1,20 @@
 /**
  * Инициализация чата
  */
-document.addEventListener('DOMContentLoaded', async function() {
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM загружен, инициализация чата начата');
+    
+    // Сразу устанавливаем обработчик нажатия клавиш для поля ввода
+    setupKeyboardHandlers();
+    
+    // Далее асинхронно загружаем данные
+    initChatAsync();
+});
+
+/**
+ * Асинхронная инициализация чата
+ */
+async function initChatAsync() {
     try {
         // Загружаем чаты и модели при загрузке страницы
         await loadChats();
@@ -18,11 +31,78 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (activeChat) {
             const chatId = activeChat.dataset.chatId;
             await loadMessages(chatId);
+            
+            // Если определена константа CHAT_MODEL_NAME, используем ее для предустановки модели
+            if (typeof CHAT_MODEL_NAME !== 'undefined' && CHAT_MODEL_NAME) {
+                console.log('Используем предустановленную модель:', CHAT_MODEL_NAME);
+                const modelSelector = document.getElementById('modelSelector');
+                if (modelSelector) {
+                    // Убедимся, что модель выбрана в селекторе
+                    for (let i = 0; i < modelSelector.options.length; i++) {
+                        if (modelSelector.options[i].value === CHAT_MODEL_NAME) {
+                            modelSelector.selectedIndex = i;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Добавляем обработчик отправки формы сообщения
+        const messageForm = document.getElementById('messageForm');
+        if (messageForm) {
+            messageForm.addEventListener('submit', handleMessageSubmit);
         }
     } catch (error) {
         console.error('Ошибка инициализации:', error);
     }
-});
+}
+
+/**
+ * Настройка обработчиков клавиатуры
+ */
+function setupKeyboardHandlers() {
+    console.log('Настройка обработчиков клавиатуры...');
+    
+    // Настройка формы сообщений
+    const messageForm = document.getElementById('messageForm');
+    if (messageForm) {
+        console.log('Найден элемент messageForm, добавляем обработчик отправки формы');
+        messageForm.onsubmit = function(e) {
+            console.log('Перехвачена отправка формы');
+            e.preventDefault(); // Предотвращаем стандартную отправку формы
+            handleMessageSubmit(e);
+            return false;
+        };
+    } else {
+        console.warn('Элемент messageForm не найден');
+    }
+    
+    // Настройка отправки по клавише Enter
+    const messageInput = document.getElementById('messageInput');
+    if (messageInput) {
+        console.log('Найден элемент messageInput, добавляем обработчик клавиши Enter');
+        
+        // Привязываем обработчик напрямую к элементу
+        messageInput.onkeydown = function(e) {
+            console.log('Нажата клавиша:', e.key, 'Shift:', e.shiftKey);
+            
+            // Отправка по Enter без Shift
+            if (e.key === 'Enter' && !e.shiftKey) {
+                console.log('Нажата клавиша Enter без Shift - отправляем сообщение');
+                e.preventDefault(); // Предотвращаем перенос строки
+                
+                // Вызываем напрямую обработчик отправки сообщения
+                handleMessageSubmit(e);
+                return false;
+            }
+        };
+        
+        console.log('Обработчик клавиатуры для messageInput установлен');
+    } else {
+        console.warn('Элемент messageInput не найден для настройки обработчика клавиатуры');
+    }
+}
 
 /**
  * Настройка обработчиков событий
@@ -89,6 +169,15 @@ function setupEventListeners() {
         });
     } else {
         console.log('Элемент modalPromptTemplates не найден на этой странице');
+    }
+    
+    // Обработчик отправки формы сообщения
+    const messageForm = document.getElementById('messageForm');
+    if (messageForm) {
+        console.log('Найден элемент messageForm, добавляем обработчик отправки');
+        messageForm.addEventListener('submit', handleMessageSubmit);
+    } else {
+        console.log('Элемент messageForm не найден на этой странице');
     }
 }
 
@@ -396,9 +485,7 @@ function addMessageToUI(role, content) {
     
     // Подсвечиваем код в блоках кода
     setTimeout(() => {
-        document.querySelectorAll('pre code').forEach((block) => {
-            hljs.highlightElement(block);
-        });
+        highlightCode();
     }, 100);
 }
 
@@ -465,6 +552,18 @@ function createMessageHTML(content, role, messageId = null) {
 }
 
 /**
+ * Подсветка синтаксиса в блоках кода
+ */
+function highlightCode() {
+    console.log('Применение подсветки синтаксиса к блокам кода');
+    
+    document.querySelectorAll('pre code').forEach((block) => {
+        // Пытаемся автоматически определить язык программирования
+        hljs.highlightElement(block);
+    });
+}
+
+/**
  * Форматирование текста сообщения (обработка кода, ссылок и др.)
  */
 function formatMessage(text) {
@@ -481,9 +580,10 @@ function formatMessage(text) {
     // Обработка новых строк
     formattedText = formattedText.replace(/\n/g, '<br>');
     
-    // Обработка блоков кода (```code```)
-    formattedText = formattedText.replace(/```([^`]+)```/g, function(match, codeContent) {
-        return `<pre class="code-block"><code>${codeContent}</code></pre>`;
+    // Обработка блоков кода с указанием языка (```python code```)
+    formattedText = formattedText.replace(/```(\w+)?\s*([^`]+)```/g, function(match, language, codeContent) {
+        const lang = language ? ` class="language-${language}"` : '';
+        return `<pre class="code-block"><code${lang}>${codeContent}</code></pre>`;
     });
     
     // Обработка inline кода (`code`)
@@ -1198,31 +1298,24 @@ function showToast(message, type = 'info') {
     }, 3000);
 }
 
-// Инициализация чата
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM загружен, инициализация чата');
-    
-    // Инициализация формы сообщений
-    const messageForm = document.getElementById('messageForm');
-    if (messageForm) {
-        console.log('Найдена форма отправки сообщений, добавляем обработчик');
-        messageForm.addEventListener('submit', handleMessageSubmit);
-    } else {
-        console.warn('Форма отправки сообщений не найдена');
-    }
-    
-    // Остальной код инициализации...
-});
-
 /**
  * Обработчик отправки сообщения
  */
 async function handleMessageSubmit(event) {
+    console.log('ВЫЗВАНА ФУНКЦИЯ handleMessageSubmit', event);
     event.preventDefault();
-    console.log('Обработка отправки сообщения...');
+    console.log('event.preventDefault() выполнен');
     
     const messageInput = document.getElementById('messageInput');
+    console.log('Найден элемент messageInput:', messageInput);
+    
+    if (!messageInput) {
+        console.error('Элемент messageInput не найден!');
+        return;
+    }
+    
     const message = messageInput.value.trim();
+    console.log('Текст сообщения:', message, 'Длина:', message.length);
     
     // Проверяем, что поле ввода не пустое
     if (!message) {
@@ -1232,6 +1325,8 @@ async function handleMessageSubmit(event) {
     
     // Получаем ID текущего чата
     const chatContainer = document.getElementById('chatContainer');
+    console.log('Найден элемент chatContainer:', chatContainer);
+    
     if (!chatContainer) {
         console.error('Не найден элемент chatContainer');
         showToast('Ошибка: не найден контейнер чата', 'error');
@@ -1247,37 +1342,88 @@ async function handleMessageSubmit(event) {
         return;
     }
     
+    // Получаем имя модели из скрытого поля
+    const currentModelName = document.getElementById('currentModelName').value;
+    console.log('Используемая модель:', currentModelName);
+    
+    if (!currentModelName) {
+        console.error('Имя модели не найдено');
+        showToast('Ошибка: не указана модель', 'error');
+        return;
+    }
+    
     // Добавляем сообщение пользователя в UI и очищаем поле ввода
+    console.log('Добавление сообщения пользователя в UI');
     addMessageToUI('user', message);
     messageInput.value = '';
     
     // Добавляем индикатор ожидания
+    console.log('Добавление индикатора загрузки');
     const chatMessages = document.getElementById('chatMessages');
     const loadingId = 'loading-' + Date.now();
+    console.log('ID индикатора загрузки:', loadingId);
     const loadingHTML = createMessageHTML('<div class="loading-dots"><span>.</span><span>.</span><span>.</span></div>', 'assistant', loadingId);
     chatMessages.insertAdjacentHTML('beforeend', loadingHTML);
+    console.log('Индикатор загрузки добавлен в DOM');
     scrollToBottom();
     
     // Отключаем поле ввода и кнопки на время ожидания ответа
+    console.log('Отключение поля ввода');
     disableMessageInput();
     
     try {
-        console.log('Отправка сообщения на сервер...');
-        await sendMessageViaHTTP(chatId, message);
-    } catch (error) {
-        console.error('Ошибка при отправке сообщения:', error);
-        showToast('Ошибка при отправке сообщения: ' + error.message, 'error');
-    } finally {
+        console.log('Начало отправки сообщения на сервер...');
+        
+        // Формируем данные для отправки
+        const requestBody = {
+            content: message,
+            model_name: currentModelName
+        };
+        console.log('Данные для отправки:', requestBody);
+        
+        // Отправляем запрос на сервер
+        console.log(`Отправка POST запроса на /chat/chats/${chatId}/messages`);
+        const response = await fetch(`/chat/chats/${chatId}/messages`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestBody)
+        });
+        console.log('Получен ответ от сервера, статус:', response.status);
+        
         // Удаляем индикатор загрузки
         const loadingElement = document.getElementById(loadingId);
         if (loadingElement) {
-            console.log('Удаление индикатора загрузки с ID:', loadingId);
+            console.log('Удаление индикатора загрузки');
             loadingElement.remove();
         } else {
             console.warn('Индикатор загрузки не найден:', loadingId);
         }
         
+        if (!response.ok) {
+            throw new Error(`Ошибка HTTP: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Получен ответ от сервера:', data);
+        
+        // Добавляем ответ модели в UI
+        if (data.assistant_message && data.assistant_message.content) {
+            console.log('Добавление ответа ассистента в UI');
+            addMessageToUI('assistant', data.assistant_message.content);
+            // Подсвечиваем код после добавления ответа
+            highlightCode();
+        } else {
+            console.error('Ответ не содержит сообщения ассистента:', data);
+            showToast('Получен некорректный ответ от сервера', 'error');
+        }
+    } catch (error) {
+        console.error('Ошибка при отправке сообщения:', error);
+        showToast('Ошибка при отправке сообщения: ' + error.message, 'error');
+    } finally {
         // Включаем поле ввода и кнопки
+        console.log('Включение поля ввода');
         enableMessageInput();
     }
 }

@@ -89,9 +89,24 @@ async def create_chat(
         model = await ChatModel.get_by_id(db, model_id)
         logger.info(f"Результат запроса модели: {model}")
         
+        # Если модель не найдена, попробуем обновить список моделей из API Ollama
         if not model:
-            logger.error(f"Модель с ID {model_id} не найдена")
-            raise HTTPException(status_code=404, detail=f"Модель с ID {model_id} не найдена")
+            logger.warning(f"Модель с ID {model_id} не найдена. Пытаемся обновить список моделей из API Ollama")
+            
+            # Импортируем OllamaService для обновления моделей
+            from app.services.ollama_service import OllamaService
+            from app.routes.model_routes import refresh_models
+            
+            # Обновляем список моделей
+            await refresh_models(db)
+            
+            # Пробуем снова получить модель после обновления
+            model = await ChatModel.get_by_id(db, model_id)
+            
+            # Если модель все равно не найдена, возвращаем ошибку
+            if not model:
+                logger.error(f"Модель с ID {model_id} не найдена даже после обновления списка моделей")
+                raise HTTPException(status_code=404, detail=f"Модель с ID {model_id} не найдена. Пожалуйста, выберите другую модель.")
         
         # Создаем новый чат с указанием модели
         logger.info(f"Создание чата с названием: {chat_create_data.title} и моделью: {model_id}")
@@ -385,4 +400,98 @@ async def get_chat_page(chat_id: int, request: Request, db: AsyncSession = Depen
             "current_chat": chat,
             "messages": messages
         }
-    ) 
+    )
+
+@router.get("/chats/{chat_id}/edit", response_class=HTMLResponse)
+async def edit_chat_page(chat_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    """Страница редактирования чата"""
+    try:
+        # Получаем чат по ID
+        chat = await Chat.get_by_id(db, chat_id)
+        if not chat:
+            raise HTTPException(status_code=404, detail="Чат не найден")
+        
+        # Получаем все доступные модели
+        models = await ChatModel.get_all(db)
+        
+        # Получаем текущие настройки модели
+        model_settings = await ModelSettings.get_by_model_id(db, chat.model_id)
+        if not model_settings:
+            # Если настроек нет, создаем дефолтные
+            model_settings = await ModelSettings.create(db, chat.model_id)
+        
+        # Рендерим шаблон
+        return templates.TemplateResponse(
+            "edit_chat.html", {
+                "request": request,
+                "chat": chat,
+                "models": models,
+                "model_settings": model_settings
+            }
+        )
+    except Exception as e:
+        logger.error(f"Ошибка при загрузке страницы редактирования чата: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Ошибка при загрузке страницы: {str(e)}")
+
+@router.post("/chats/{chat_id}/update", response_class=RedirectResponse)
+async def update_chat(
+    chat_id: int, 
+    request: Request, 
+    db: AsyncSession = Depends(get_db),
+    title: str = Form(...),
+    model_id: int = Form(...),
+    system_prompt: str = Form(...),
+    temperature: float = Form(0.7),
+    max_tokens: int = Form(1024)
+):
+    """Обновление настроек чата"""
+    try:
+        # Получаем чат по ID
+        chat = await Chat.get_by_id(db, chat_id)
+        if not chat:
+            raise HTTPException(status_code=404, detail="Чат не найден")
+        
+        # Обновляем название чата
+        chat.title = title
+        
+        # Проверяем, изменилась ли модель
+        if chat.model_id != model_id:
+            # Получаем новую модель
+            new_model = await ChatModel.get_by_id(db, model_id)
+            if not new_model:
+                raise HTTPException(status_code=404, detail="Модель не найдена")
+            
+            # Обновляем модель чата
+            chat.model_id = model_id
+        
+        # Сохраняем изменения чата
+        db.add(chat)
+        await db.commit()
+        await db.refresh(chat)
+        
+        # Обновляем настройки модели
+        model_settings = await ModelSettings.get_by_model_id(db, model_id)
+        if not model_settings:
+            # Если настроек нет, создаем новые
+            model_settings = await ModelSettings.create(
+                db, 
+                model_id=model_id,
+                temperature=str(temperature),
+                max_tokens=str(max_tokens),
+                system_prompt=system_prompt
+            )
+        else:
+            # Обновляем существующие настройки
+            model_settings.temperature = str(temperature)
+            model_settings.max_tokens = str(max_tokens)
+            model_settings.system_prompt = system_prompt
+            
+            db.add(model_settings)
+            await db.commit()
+            await db.refresh(model_settings)
+        
+        # Перенаправляем обратно на страницу чата
+        return RedirectResponse(url=f"/chat/chats/{chat_id}", status_code=303)
+    except Exception as e:
+        logger.error(f"Ошибка при обновлении чата: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Ошибка при обновлении чата: {str(e)}") 

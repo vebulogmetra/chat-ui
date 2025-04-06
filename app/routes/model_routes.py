@@ -30,6 +30,20 @@ async def list_models(db: AsyncSession = Depends(get_db)):
     try:
         logger.info("Запрос на получение списка моделей")
         models = await ChatModel.get_all(db)
+        
+        # Если моделей нет в БД, обновляем их из Ollama API и делаем повторную попытку
+        if not models:
+            logger.info("В базе данных нет моделей. Автоматическое обновление из Ollama API.")
+            await refresh_models(db)  # Обновляем список моделей
+            
+            # Повторно запрашиваем модели из БД
+            models = await ChatModel.get_all(db)
+            
+            # Если и после обновления моделей нет, возвращаем пустой список
+            if not models:
+                logger.warning("После обновления модели всё еще не найдены в БД.")
+                return []
+        
         logger.info(f"Получено {len(models)} моделей")
         
         result = [
