@@ -8,7 +8,7 @@ import logging
 from app.database.db import get_db
 from app.models.models import ChatModel, ModelSettings, PromptTemplate
 from app.services.ollama_service import OllamaService
-from app.schemas.model_schema import ModelResponse
+from app.schemas.model_schema import ChatModelResponse
 
 # Настраиваем логгер
 logger = logging.getLogger(__name__)
@@ -62,7 +62,7 @@ async def list_models(db: AsyncSession = Depends(get_db)):
         logger.error(f"Ошибка при получении списка моделей: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Ошибка при получении списка моделей: {str(e)}")
 
-@router.get("/refresh", response_model=List[ModelResponse])
+@router.get("/refresh", response_model=List[ChatModelResponse])
 async def refresh_models(db: AsyncSession = Depends(get_db)):
     """
     Обновить список моделей из Ollama API и вернуть обновленный список

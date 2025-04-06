@@ -7,6 +7,8 @@ from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from app.database.db import init_db
 from app.routes import chat_routes, model_routes, template_routes
+from app.api.router import api_router
+from app.views.router import views_router
 
 # Настройка логирования
 logging.basicConfig(
@@ -36,10 +38,16 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 # Настройка шаблонов
 templates = Jinja2Templates(directory="app/templates")
 
-# Включение маршрутов
+# Включение существующих маршрутов
 app.include_router(chat_routes.router)
 app.include_router(model_routes.router)
 app.include_router(template_routes.router)
+
+# Включение API-маршрутов
+app.include_router(api_router)
+
+# Включение веб-маршрутов
+app.include_router(views_router)
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
