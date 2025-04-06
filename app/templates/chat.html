@@ -42,7 +42,7 @@
     
     <div class="chat-form">
         <form id="messageForm">
-            <textarea id="messageInput" placeholder="Введите ваш запрос..."></textarea>
+            <textarea id="messageInput" placeholder="Введите ваш запрос..." onkeydown="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); document.getElementById('sendButton').click(); return false; }"></textarea>
             <div class="form-controls">
                 <button type="submit" id="sendButton">Отправить</button>
             </div>

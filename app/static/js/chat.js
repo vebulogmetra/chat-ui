@@ -77,31 +77,6 @@ function setupKeyboardHandlers() {
     } else {
         console.warn('Элемент messageForm не найден');
     }
-    
-    // Настройка отправки по клавише Enter
-    const messageInput = document.getElementById('messageInput');
-    if (messageInput) {
-        console.log('Найден элемент messageInput, добавляем обработчик клавиши Enter');
-        
-        // Привязываем обработчик напрямую к элементу
-        messageInput.onkeydown = function(e) {
-            console.log('Нажата клавиша:', e.key, 'Shift:', e.shiftKey);
-            
-            // Отправка по Enter без Shift
-            if (e.key === 'Enter' && !e.shiftKey) {
-                console.log('Нажата клавиша Enter без Shift - отправляем сообщение');
-                e.preventDefault(); // Предотвращаем перенос строки
-                
-                // Вызываем напрямую обработчик отправки сообщения
-                handleMessageSubmit(e);
-                return false;
-            }
-        };
-        
-        console.log('Обработчик клавиатуры для messageInput установлен');
-    } else {
-        console.warn('Элемент messageInput не найден для настройки обработчика клавиатуры');
-    }
 }
 
 /**
@@ -1303,8 +1278,12 @@ function showToast(message, type = 'info') {
  */
 async function handleMessageSubmit(event) {
     console.log('ВЫЗВАНА ФУНКЦИЯ handleMessageSubmit', event);
-    event.preventDefault();
-    console.log('event.preventDefault() выполнен');
+    
+    // Предотвращаем стандартное поведение события, если это возможно
+    if (event && typeof event.preventDefault === 'function') {
+        event.preventDefault();
+        console.log('event.preventDefault() выполнен');
+    }
     
     const messageInput = document.getElementById('messageInput');
     console.log('Найден элемент messageInput:', messageInput);
