@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block title %}Редактирование чата - LLM Chat UI{% endblock %}
+
+{% block content %}
+<div class="edit-chat-container">
+    <div class="edit-chat-header">
+        <h2>Редактирование чата</h2>
+        <a href="/chat/chats/{{ chat.id }}" class="back-to-chat-btn">Вернуться к чату</a>
+    </div>
+    
+    <div class="edit-chat-form">
+        <form id="editChatForm" action="/chat/chats/{{ chat.id }}/update" method="post">
+            <div class="form-group">
+                <label for="chatTitle">Название чата:</label>
+                <input type="text" id="chatTitle" name="title" value="{{ chat.title }}" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="modelSelect">Модель:</label>
+                <select id="modelSelect" name="model_id" required>
+                    {% for model in models %}
+                    <option value="{{ model.id }}" {% if model.id == chat.model_id %}selected{% endif %}>
+                        {{ model.display_name }} ({{ model.name }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="promptTemplates">Шаблон роли:</label>
+                <select id="promptTemplates" name="template_id">
+                    <option value="">Выберите шаблон роли...</option>
+                    <!-- Шаблоны будут загружены через JavaScript -->
+                </select>
+                <div class="template-preview" id="templatePreview"></div>
+            </div>
+            
+            <div class="form-group">
+                <label for="systemPrompt">Системный промпт:</label>
+                <textarea id="systemPrompt" name="system_prompt" rows="6">{{ model_settings.system_prompt }}</textarea>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group half-width">
+                    <label for="temperature">Температура:</label>
+                    <div class="range-container">
+                        <input type="range" id="temperature" name="temperature" min="0" max="1" step="0.1" value="{{ model_settings.temperature }}">
+                        <span id="temperatureValue">{{ model_settings.temperature }}</span>
+                    </div>
+                </div>
+                
+                <div class="form-group half-width">
+                    <label for="maxTokens">Максимальная длина ответа:</label>
+                    <input type="number" id="maxTokens" name="max_tokens" min="64" max="4096" value="{{ model_settings.max_tokens }}">
+                </div>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="save-btn">Сохранить изменения</button>
+                <a href="/chat/chats/{{ chat.id }}" class="cancel-btn">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', async function() {
+        // Загрузка шаблонов промптов
+        await loadPromptTemplates();
+        
+        // Обработчик для изменения значения температуры
+        const temperatureSlider = document.getElementById('temperature');
+        const temperatureValue = document.getElementById('temperatureValue');
+        
+        if (temperatureSlider && temperatureValue) {
+            temperatureSlider.addEventListener('input', function() {
+                temperatureValue.textContent = this.value;
+            });
+        }
+        
+        // Обработчик для выбора шаблона промпта
+        const promptTemplatesSelect = document.getElementById('promptTemplates');
+        if (promptTemplatesSelect) {
+            promptTemplatesSelect.addEventListener('change', async function() {
+                const templateId = this.value;
+                if (templateId) {
+                    await loadTemplateDetails(templateId);
+                    
+                    // Автоматически заполняем системный промпт из шаблона
+                    try {
+                        const response = await fetch(`/models/prompts/${templateId}`);
+                        if (response.ok) {
+                            const template = await response.json();
+                            document.getElementById('systemPrompt').value = template.system_prompt;
+                        }
+                    } catch (error) {
+                        console.error('Ошибка загрузки шаблона:', error);
+                    }
+                }
+            });
+        }
+    });
+    
+    // Загрузка шаблонов промптов
+    async function loadPromptTemplates() {
+        try {
+            const response = await fetch('/models/prompts/list');
+            if (response.ok) {
+                const templates = await response.json();
+                
+                const promptTemplatesSelect = document.getElementById('promptTemplates');
+                if (promptTemplatesSelect) {
+                    // Очищаем существующие опции, кроме placeholder
+                    const placeholder = promptTemplatesSelect.querySelector('option[value=""]');
+                    promptTemplatesSelect.innerHTML = '';
+                    
+                    if (placeholder) {
+                        promptTemplatesSelect.appendChild(placeholder);
+                    } else {
+                        const option = document.createElement('option');
+                        option.value = '';
+                        option.textContent = 'Выберите шаблон роли...';
+                        promptTemplatesSelect.appendChild(option);
+                    }
+                    
+                    // Добавляем новые опции
+                    templates.forEach(template => {
+                        const option = document.createElement('option');
+                        option.value = template.id;
+                        option.textContent = template.name;
+                        promptTemplatesSelect.appendChild(option);
+                    });
+                }
+                
+                return templates;
+            } else {
+                console.error('Ошибка загрузки шаблонов:', response.status);
+                return [];
+            }
+        } catch (error) {
+            console.error('Ошибка загрузки шаблонов:', error);
+            return [];
+        }
+    }
+    
+    // Загрузка деталей шаблона
+    async function loadTemplateDetails(templateId) {
+        try {
+            const response = await fetch(`/models/prompts/${templateId}`);
+            if (response.ok) {
+                const template = await response.json();
+                
+                // Обновляем предпросмотр шаблона
+                const templatePreview = document.getElementById('templatePreview');
+                if (templatePreview) {
+                    let previewHTML = '';
+                    
+                    if (template.description) {
+                        previewHTML += `<div class="template-description">${template.description}</div>`;
+                    }
+                    
+                    previewHTML += `<div class="template-system-prompt">
+                        <strong>Системный промпт:</strong>
+                        <pre>${template.system_prompt}</pre>
+                    </div>`;
+                    
+                    if (template.user_prompt) {
+                        previewHTML += `<div class="template-user-prompt">
+                            <strong>Пример запроса:</strong>
+                            <pre>${template.user_prompt}</pre>
+                        </div>`;
+                    }
+                    
+                    templatePreview.innerHTML = previewHTML;
+                    templatePreview.style.display = 'block';
+                }
+                
+                return template;
+            } else {
+                console.error('Ошибка загрузки шаблона:', response.status);
+                return null;
+            }
+        } catch (error) {
+            console.error('Ошибка загрузки шаблона:', error);
+            return null;
+        }
+    }
+</script>
+{% endblock %} 

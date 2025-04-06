@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}LLM Chat UI{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', path='/css/styles.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="{{ url_for('static', path='/js/chat.js') }}"></script>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -12,7 +16,7 @@
         <aside class="sidebar">
             <div class="sidebar-header">
                 <h1>LLM Chat UI</h1>
-                <button class="new-chat-btn" id="newChatBtn">
+                <button class="new-chat-btn" id="sidebarNewChatBtn" onclick="window.location.href='/'">
                     <span>Новый чат</span>
                 </button>
             </div>
@@ -24,7 +28,7 @@
             </div>
             
             <div class="sidebar-footer">
-                <a href="{{ url_for('models_page') }}">Настройки моделей</a>
+                <a href="/models">Настройки моделей</a>
             </div>
         </aside>
         

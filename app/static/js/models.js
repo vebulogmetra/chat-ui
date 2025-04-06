@@ -39,64 +39,222 @@ function setupModelEditButtons() {
 }
 
 /**
- * Обновление списка моделей из Ollama
+ * Загрузка списка моделей и отображение их на странице
  */
-async function refreshModels() {
-    const refreshBtn = document.getElementById('refreshModelsBtn');
-    refreshBtn.disabled = true;
-    refreshBtn.textContent = 'Обновление...';
-    
+async function loadModelsList() {
     try {
-        const response = await fetch('/models/refresh');
-        if (response.ok) {
-            const models = await response.json();
-            // Обновляем список моделей на странице
-            updateModelsList(models);
-        } else {
-            showError('Ошибка обновления моделей');
+        const response = await fetch('/models/list');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
+        
+        const models = await response.json();
+        console.log('Загружено моделей:', models.length);
+        
+        // Получаем контейнер для карточек моделей
+        const modelCardsContainer = document.getElementById('modelCards');
+        if (!modelCardsContainer) {
+            console.error('Контейнер для карточек моделей не найден');
+            return;
+        }
+        
+        // Очищаем контейнер
+        modelCardsContainer.innerHTML = '';
+        
+        // Создаем карточки для каждой модели
+        models.forEach(model => {
+            // Создаем карточку модели
+            const card = document.createElement('div');
+            card.className = 'model-card';
+            card.id = `model-card-${model.id}`;
+            
+            // Наполняем карточку контентом
+            card.innerHTML = `
+                <h3>${model.display_name || model.name}</h3>
+                <p>${model.description || `Модель ${model.name}`}</p>
+                <button class="settings-btn" data-model-id="${model.id}" data-model-name="${model.name}">Настройки</button>
+            `;
+            
+            // Добавляем карточку в контейнер
+            modelCardsContainer.appendChild(card);
+            
+            // Добавляем обработчик для кнопки настроек
+            const settingsBtn = card.querySelector('.settings-btn');
+            if (settingsBtn) {
+                settingsBtn.addEventListener('click', function() {
+                    const modelId = this.getAttribute('data-model-id');
+                    const modelName = this.getAttribute('data-model-name');
+                    openModelSettings(modelId, modelName);
+                });
+            }
+        });
     } catch (error) {
-        console.error('Ошибка:', error);
-        showError('Ошибка обновления моделей');
-    } finally {
-        refreshBtn.disabled = false;
-        refreshBtn.textContent = 'Обновить список моделей';
+        console.error('Ошибка загрузки моделей:', error);
+        showToast('Ошибка загрузки списка моделей', 'error');
     }
 }
 
 /**
- * Обновляет список моделей на странице
+ * Обновление списка моделей с сервера
  */
-function updateModelsList(models) {
-    const modelsList = document.querySelector('.models-list');
-    
-    // Если нет моделей, показываем сообщение
-    if (!models || models.length === 0) {
-        modelsList.innerHTML = '<div class="empty-state">Нет доступных моделей. Установите модели через Ollama и нажмите "Обновить список моделей".</div>';
+async function refreshModels() {
+    try {
+        // Показываем индикатор загрузки
+        showToast('Обновление списка моделей...', 'info');
+        
+        const response = await fetch('/models/refresh');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('Обновлено моделей:', result.length);
+        
+        // Перезагружаем список моделей
+        await loadModelsList();
+        
+        showToast('Список моделей успешно обновлен', 'success');
+    } catch (error) {
+        console.error('Ошибка обновления моделей:', error);
+        showToast('Ошибка обновления моделей', 'error');
+    }
+}
+
+/**
+ * Открытие модального окна настроек модели
+ */
+function openModelSettings(modelId, modelName) {
+    // Получаем модальное окно
+    const modal = document.getElementById('modelSettingsModal');
+    if (!modal) {
+        console.error('Модальное окно настроек не найдено');
         return;
     }
     
-    // Очищаем текущий список
-    modelsList.innerHTML = '';
+    // Устанавливаем заголовок
+    const modalTitle = modal.querySelector('.modal-title');
+    if (modalTitle) {
+        modalTitle.textContent = `Настройки модели ${modelName}`;
+    }
     
-    // Добавляем модели
-    models.forEach(model => {
-        const modelHTML = `
-            <div class="model-item" data-model-name="${model.name}">
-                <div class="model-info">
-                    <h3>${model.display_name}</h3>
-                    <p>${model.description || `Модель ${model.name}`}</p>
-                </div>
-                <div class="model-actions">
-                    <button class="edit-model-btn" data-model-name="${model.name}">Настроить</button>
-                </div>
-            </div>
-        `;
-        modelsList.insertAdjacentHTML('beforeend', modelHTML);
-    });
+    // Устанавливаем ID модели в скрытое поле
+    const modelIdInput = document.getElementById('modelIdInput');
+    if (modelIdInput) {
+        modelIdInput.value = modelId;
+    }
     
-    // Обновляем обработчики
-    setupModelEditButtons();
+    // Загружаем текущие настройки модели
+    loadModelSettingsForModal(modelId);
+    
+    // Отображаем модальное окно
+    modal.style.display = 'block';
+}
+
+/**
+ * Загрузка настроек модели для отображения в модальном окне
+ */
+async function loadModelSettingsForModal(modelId) {
+    try {
+        const response = await fetch(`/models/${modelId}/settings`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const settings = await response.json();
+        console.log('Загружены настройки модели:', settings);
+        
+        // Заполняем форму настроек
+        const temperatureInput = document.getElementById('temperatureInput');
+        const topPInput = document.getElementById('topPInput');
+        const topKInput = document.getElementById('topKInput');
+        const systemPromptInput = document.getElementById('systemPromptTextarea');
+        
+        if (temperatureInput) temperatureInput.value = settings.temperature || '0.7';
+        if (topPInput) topPInput.value = settings.top_p || '0.9';
+        if (topKInput) topKInput.value = settings.top_k || '40';
+        if (systemPromptInput) systemPromptInput.value = settings.system_prompt || '';
+        
+    } catch (error) {
+        console.error('Ошибка загрузки настроек модели:', error);
+        showToast('Ошибка загрузки настроек модели', 'error');
+    }
+}
+
+/**
+ * Сохранение настроек модели
+ */
+async function saveModelSettings(event) {
+    event.preventDefault();
+    
+    const modelId = document.getElementById('modelIdInput').value;
+    if (!modelId) {
+        showToast('ID модели не указан', 'error');
+        return;
+    }
+    
+    const form = document.getElementById('modelSettingsForm');
+    if (!form) {
+        showToast('Форма настроек не найдена', 'error');
+        return;
+    }
+    
+    const formData = new FormData(form);
+    
+    try {
+        const response = await fetch(`/models/${modelId}/settings`, {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('Сохранены настройки модели:', result);
+        
+        // Закрываем модальное окно
+        const modal = document.getElementById('modelSettingsModal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+        
+        showToast('Настройки модели сохранены', 'success');
+    } catch (error) {
+        console.error('Ошибка сохранения настроек:', error);
+        showToast('Ошибка сохранения настроек', 'error');
+    }
+}
+
+/**
+ * Вспомогательная функция для отображения уведомлений
+ */
+function showToast(message, type = 'info') {
+    // Создаем элемент уведомления
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+    
+    // Добавляем в контейнер для уведомлений
+    const toastContainer = document.getElementById('toastContainer');
+    if (!toastContainer) {
+        // Если контейнера нет, создаем его
+        const container = document.createElement('div');
+        container.id = 'toastContainer';
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+        container.appendChild(toast);
+    } else {
+        toastContainer.appendChild(toast);
+    }
+    
+    // Автоматически удаляем через 3 секунды
+    setTimeout(() => {
+        toast.classList.add('toast-hidden');
+        setTimeout(() => {
+            toast.remove();
+        }, 300);
+    }, 3000);
 }
 
 /**
@@ -219,68 +377,6 @@ function setupModelSettingsModal() {
         e.preventDefault();
         saveModelSettings();
     });
-}
-
-/**
- * Открытие модального окна настроек модели
- */
-async function openModelSettings(modelName) {
-    const modal = document.getElementById('modelSettingsModal');
-    const currentModelName = document.getElementById('currentModelName');
-    
-    currentModelName.textContent = modelName;
-    
-    // Загрузить текущие настройки модели
-    try {
-        const response = await fetch(`/models/${modelName}/settings`);
-        if (response.ok) {
-            const settings = await response.json();
-            
-            // Заполнить форму
-            document.getElementById('temperature').value = settings.temperature;
-            document.getElementById('temperatureValue').textContent = settings.temperature;
-            document.getElementById('maxTokens').value = settings.max_tokens;
-            document.getElementById('systemPrompt').value = settings.system_prompt || '';
-        }
-    } catch (error) {
-        console.error('Ошибка загрузки настроек:', error);
-    }
-    
-    // Показать модальное окно
-    modal.style.display = 'block';
-}
-
-/**
- * Сохранение настроек модели
- */
-async function saveModelSettings() {
-    const modal = document.getElementById('modelSettingsModal');
-    const modelName = document.getElementById('currentModelName').textContent;
-    const temperature = document.getElementById('temperature').value;
-    const maxTokens = document.getElementById('maxTokens').value;
-    const systemPrompt = document.getElementById('systemPrompt').value;
-    
-    try {
-        const formData = new FormData();
-        formData.append('temperature', temperature);
-        formData.append('max_tokens', maxTokens);
-        formData.append('system_prompt', systemPrompt);
-        
-        const response = await fetch(`/models/${modelName}/settings`, {
-            method: 'POST',
-            body: formData
-        });
-        
-        if (response.ok) {
-            // Закрыть модальное окно
-            modal.style.display = 'none';
-        } else {
-            showError('Ошибка сохранения настроек');
-        }
-    } catch (error) {
-        console.error('Ошибка:', error);
-        showError('Ошибка сохранения настроек');
-    }
 }
 
 /**
@@ -430,9 +526,59 @@ async function deletePromptTemplate(promptId) {
 }
 
 /**
- * Показать сообщение об ошибке
+ * Показывает сообщение об ошибке
  */
 function showError(message) {
-    console.error(message);
-    alert(message);
+    // Удаляем старые сообщения об ошибках, если они есть
+    document.querySelectorAll('.error-message').forEach(el => el.remove());
+    
+    // Создаем элемент сообщения
+    const errorElement = document.createElement('div');
+    errorElement.className = 'error-message';
+    errorElement.textContent = message;
+    
+    // Добавляем элемент в DOM
+    document.body.appendChild(errorElement);
+    
+    // Анимация появления
+    setTimeout(() => {
+        errorElement.classList.add('fade-in');
+    }, 10);
+    
+    // Автоматическое скрытие через 5 секунд
+    setTimeout(() => {
+        errorElement.classList.add('fade-out');
+        setTimeout(() => {
+            errorElement.remove();
+        }, 500);
+    }, 5000);
+}
+
+/**
+ * Показывает сообщение об успешном выполнении операции
+ */
+function showSuccess(message) {
+    // Удаляем старые сообщения об успехе, если они есть
+    document.querySelectorAll('.success-message').forEach(el => el.remove());
+    
+    // Создаем элемент сообщения
+    const successElement = document.createElement('div');
+    successElement.className = 'success-message';
+    successElement.textContent = message;
+    
+    // Добавляем элемент в DOM
+    document.body.appendChild(successElement);
+    
+    // Анимация появления
+    setTimeout(() => {
+        successElement.classList.add('fade-in');
+    }, 10);
+    
+    // Автоматическое скрытие через 3 секунды
+    setTimeout(() => {
+        successElement.classList.add('fade-out');
+        setTimeout(() => {
+            successElement.remove();
+        }, 500);
+    }, 3000);
 }
